@@ -220,7 +220,10 @@ int rtlsdr_set_dithering(rtlsdr_dev_t *dev, int dither) {
 }
 
 int rtlsdr_reset_buffer(rtlsdr_dev_t *dev) {
-    return -1;
+    if (!dev) {
+        return -1;
+    }
+    return 0;
 }
 
 int rtlsdr_read_sync(rtlsdr_dev_t *dev, void *buf, int len, int *n_read) {
