@@ -278,7 +278,18 @@ int rtlsdr_read_async(rtlsdr_dev_t *dev,
                       void *ctx,
                       uint32_t buf_num,
                       uint32_t buf_len) {
-    // TODO: implement
+    int ret = 0;
+
+    char *source_filename = getenv("FAKERTL_SOURCE_FILENAME");
+    if (!source_filename) {
+        fprintf(stderr, "fakertl: Environment variable FAKERTL_SOURCE_FILENAME not set\n");
+        return -1;
+    }
+    FILE *source_fd = fopen(source_filename, "r");
+    if (!source_fd) {
+        perror("fakertl");
+        return -1;
+    }
 
     enum rtlsdr_async_status next_status = RTLSDR_INACTIVE;
 
@@ -306,14 +317,23 @@ int rtlsdr_read_async(rtlsdr_dev_t *dev,
         }
 
         for(int i = 0; i < dev->xfer_buf_num; ++i) {
-            dev->cb(dev->xfer_buf[i], dev->xfer_buf_len, dev->cb_ctx);
+            unsigned char *current_buf = dev->xfer_buf[i];
+            size_t num_read = fread(current_buf, sizeof(unsigned char), dev->xfer_buf_len, source_fd);
+            dev->cb(current_buf, num_read, dev->cb_ctx);
+
+            if (num_read < dev->xfer_buf_len) {
+                // Is this the right thing to do? Maybe we should try reading again until we get 2x 0-byte reads.
+                // Maybe we should re-open the file?
+                dev->async_status = RTLSDR_CANCELING;
+                ret = 1; // TODO: figure out correct return value.
+            }
         }
     }
 
     _rtlsdr_free_async_buffers(dev);
     dev->async_status = next_status;
 
-    return 0;
+    return ret;
 }
 
 int rtlsdr_cancel_async(rtlsdr_dev_t *dev) {
