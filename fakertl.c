@@ -8,6 +8,10 @@
 #define DEFAULT_BUF_NUMBER  15
 #define DEFAULT_BUF_LENGTH  (16 * 32 * 512)
 
+
+const char *SOURCE_FILENAME_ENV_VAR = "FAKERTL_SOURCE_FILENAME";
+const char *SOURCE_COMMAND_ENV_VAR = "FAKERTL_SOURCE_COMMAND";
+
 enum rtlsdr_async_status {
     RTLSDR_INACTIVE = 0,
     RTLSDR_CANCELING,
@@ -280,12 +284,19 @@ int rtlsdr_read_async(rtlsdr_dev_t *dev,
                       uint32_t buf_len) {
     int ret = 0;
 
-    char *source_filename = getenv("FAKERTL_SOURCE_FILENAME");
-    if (!source_filename) {
-        fprintf(stderr, "fakertl: Environment variable FAKERTL_SOURCE_FILENAME not set\n");
+    char *source_filename = getenv(SOURCE_FILENAME_ENV_VAR);
+    char *source_command = getenv(SOURCE_COMMAND_ENV_VAR);
+
+    FILE *source_fd = NULL;
+    if (source_filename) {
+        source_fd = fopen(source_filename, "r");
+    } else if (source_command) {
+        source_fd = popen(source_command, "r");
+    } else {
+        fprintf(stderr, "fakertl: Neither $%s nor $%s are set\n", SOURCE_FILENAME_ENV_VAR, SOURCE_COMMAND_ENV_VAR);
         return -1;
     }
-    FILE *source_fd = fopen(source_filename, "r");
+
     if (!source_fd) {
         perror("fakertl");
         return -1;
