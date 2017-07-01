@@ -55,7 +55,22 @@ struct rtlsdr_dev {
 
     int num_gain_values;
     int *possible_gain_values;
+
 };
+
+void fakertl_set_env_vars(rtlsdr_dev_t *dev) {
+    char *env_samp_rate = NULL;
+    char *env_center_freq = NULL;
+    char *env_center_freq_mhz = NULL;
+
+    asprintf(&env_samp_rate, "%d", dev->sample_rate);
+    asprintf(&env_center_freq, "%d", dev->center_freq);
+    asprintf(&env_center_freq_mhz, "%.6f", dev->center_freq / 1000000.0);
+
+    setenv("SAMP_RATE", env_samp_rate, 1);
+    setenv("CENTER_FREQ", env_center_freq, 1);
+    setenv("CENTER_FREQ_MHZ", env_center_freq_mhz, 1);
+}
 
 uint32_t rtlsdr_get_device_count(void) {
     return 1;
@@ -128,6 +143,7 @@ int rtlsdr_read_eeprom(rtlsdr_dev_t *dev, uint8_t *data,
 int rtlsdr_set_center_freq(rtlsdr_dev_t *dev, uint32_t freq) {
     // TODO implement
     dev->center_freq = freq;
+    fakertl_set_env_vars(dev);
     return 0;
 }
 
@@ -186,6 +202,7 @@ int rtlsdr_set_tuner_gain_mode(rtlsdr_dev_t *dev, int manual) {
 int rtlsdr_set_sample_rate(rtlsdr_dev_t *dev, uint32_t rate) {
     // TODO: implement-
     dev->sample_rate = rate;
+    fakertl_set_env_vars(dev);
     return 0;
 }
 
